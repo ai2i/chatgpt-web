@@ -15,6 +15,11 @@
 > 详情参考官方详细[参数示例](https://beta.openai.com/examples)
 
 # 更新记录
+- [x] fix: 支持gpt-4模型，修改前端空白BUG。 2023-03-30
+- [x] fix: 增加用户模块，认证页面，接口jwt验证。 2023-03-27
+- [x] fix: 修复前端富文本显示问题，优化dockerfile。 2023-03-27
+- [x] fix: 优化前端显示界面。 2023-03-20
+- [x] feat: 增加接口代理配置。 2023-03-20
 - [x] fix: 修复前端部分BUG，优化富文本代码格式。 2023-03-13
 - [x] feat: 增加socsk5代理的支持，命令行参数配置。2023-03-13
 - [x] feat: 增加docker-compose.yaml。2023-03-08
@@ -33,10 +38,6 @@
 # 使用前提
 > 有openai账号，并且创建好api_key，注册事项可以参考[此文章](https://juejin.cn/post/7173447848292253704) 。
 
-# 项目初衷
-> 自chatgpt流行以后，一直在使用其作为自己的编码工具。奈何官网时常在问题问到一半时短路，一些得到的答案就此丢失。
-> 为了解决这个问题，我选择了更加稳定的API套上客户端来作为自己的工具。定制化地做了一些功能，如存储提问记录，统计提问信息等一些功能，同时做上内网穿透提供给没有办法体验chatgpt的朋友使用，由此大大降低了使用门槛。
-> 当前项目是初始功能版本，开源出来给有需要的朋友使用。
 
 # 快速开始
 
@@ -88,6 +89,7 @@ $ go run main.go
 # 运行项目，环境变量参考下方配置说明
 $ docker run -itd --name chatgpt-web --restart=always \
  -e APIKEY=换成你的key \
+ -e APIURL= \
  -e MODEL=gpt-3.5-turbo-0301 \
  -e BOT_DESC=你是一个AI助手,我需要你模拟一名温柔贴心的女朋友来回答我的问题. \
  -e MAX_TOKENS=512 \
@@ -129,6 +131,7 @@ $ docker run -itd --name chatgpt-web -v `pwd`/config.json:/app/config.json -p 80
 ```json
 {
   "api_key": "your api key",
+  "api_url": "",
   "port": 8080,
   "listen": "",
   "bot_desc": "你是一个AI助手，我需要你模拟一名温柔贴心的女朋友来回答我的问题。",
@@ -146,9 +149,10 @@ $ docker run -itd --name chatgpt-web -v `pwd`/config.json:/app/config.json -p 80
 
 ````
 api_key：openai api_key
+api_url: openai api接口地址 不填使用默认 https://api.openai.com/v1 注，该服务的提供者可以看到你的明文请求(包括你在OpenAI的key)，建议自建或使用可信来源
 port: http服务端口
 listen: http服务监听地址，不填默认监听0.0.0.0
-proxy: openai请求代理，防墙。
+proxy: openai请求代理，防墙。 例如 http://127.0.0.1:7890 socks5://127.0.0.1:7890
 bot_desc：AI特征，非常重要，功能等同给与AI一个身份设定
 max_tokens: GPT响应字符数，最大2048，默认值512。max_tokens会影响接口响应速度，字符越大响应越慢。
 model: GPT选用模型，默认text-davinci-003，具体选项参考官网训练场
@@ -212,12 +216,6 @@ server {
         proxy_http_version 1.1;
         # 反向代理超时时间设定(OpenAI的反应比较慢，设定为120秒后才超时)
         proxy_read_timeout 120s;
-
-        # 将index.html中的绝对路径更改为相对路径
-        sub_filter 'src="/' 'src="';
-        sub_filter 'href="/' 'href="';
-        sub_filter_types text/html;
-        sub_filter_once off;
     }
 
     # 如果chatgpt-web放置于根路径，使用这个location配置

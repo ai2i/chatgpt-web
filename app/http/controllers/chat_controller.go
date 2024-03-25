@@ -2,19 +2,22 @@ package controllers
 
 import (
 	"context"
+	"github.com/869413421/chatgpt-web/pkg/types"
 	"net"
 	"net/http"
 	"net/url"
 	"strings"
 	"time"
 
+	gogpt "github.com/sashabaranov/go-openai"
 	"golang.org/x/net/proxy"
 
 	"github.com/869413421/chatgpt-web/config"
 	"github.com/869413421/chatgpt-web/pkg/logger"
 	"github.com/gin-gonic/gin"
-	gogpt "github.com/sashabaranov/go-gpt3"
 )
+
+var chatModels = []string{gogpt.GPT432K0314, gogpt.GPT4, gogpt.GPT40314, gogpt.GPT432K, gogpt.GPT3Dot5Turbo, gogpt.GPT3Dot5Turbo0301}
 
 // ChatController 首页控制器
 type ChatController struct {
@@ -75,6 +78,11 @@ func (c *ChatController) Completion(ctx *gin.Context) {
 
 	}
 
+	// 自定义gptConfig.BaseURL
+	if cnf.ApiURL != "" {
+		gptConfig.BaseURL = cnf.ApiURL
+	}
+
 	client := gogpt.NewClientWithConfig(gptConfig)
 	if request.Messages[0].Role != "system" {
 		newMessage := append([]gogpt.ChatCompletionMessage{
@@ -84,7 +92,8 @@ func (c *ChatController) Completion(ctx *gin.Context) {
 		logger.Info(request.Messages)
 	}
 
-	if cnf.Model == gogpt.GPT3Dot5Turbo0301 || cnf.Model == gogpt.GPT3Dot5Turbo {
+	// cnf.Model 是否在 chatModels 中
+	if types.Contains(chatModels, cnf.Model) {
 		request.Model = cnf.Model
 		resp, err := client.CreateChatCompletion(ctx, request)
 		if err != nil {
@@ -126,7 +135,6 @@ func (c *ChatController) Completion(ctx *gin.Context) {
 			}),
 		})
 	}
-
 }
 
 type dialContextFunc func(ctx context.Context, network, address string) (net.Conn, error)
